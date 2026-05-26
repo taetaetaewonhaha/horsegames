@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 초역동적 와이드 경마 레이스 (머니게임) ⚡</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .money-status {
+            font-size: 22px; font-weight: bold; color: #ff9100;
+            background: #222; padding: 10px 25px; border-radius: 30px;
+            margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .record-board {
+            font-size: 16px; color: #555; background: #fff;
+            padding: 8px 20px; border-radius: 20px; margin-bottom: 15px;
+            border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        /* 💾 상시 노출 저장 구역 */
+        .save-container {
+            background: #fff; padding: 15px 25px; border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;
+            display: flex; align-items: center; gap: 10px; border-top: 4px solid #2e7d32;
+        }
+        .controls {
+            margin-bottom: 20px; background: white; padding: 15px 25px;
+            border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+        }
+        select, button, input {
+            padding: 10px 15px; font-size: 16px; border-radius: 5px;
+            border: 1px solid #ddd; box-sizing: border-box;
+        }
+        input[type="number"] { width: 120px; text-align: right; font-weight: bold; }
+        button {
+            background-color: #d32f2f; color: white; border: none;
+            font-weight: bold; cursor: pointer; transition: background 0.2s;
+        }
+        button:hover { background-color: #b71c1c; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .allin-btn { background-color: #ff6f00; }
+        .allin-btn:hover { background-color: #e65100; }
+        .restart-btn { background-color: #1e88e5; }
+        .save-btn { background-color: #2e7d32; }
+       
+        .track-container {
+            width: 100%; max-width: 1600px; background: #1b5e20;
+            padding: 20px 0; border-radius: 8px; position: relative;
+            box-shadow: inset 0 0 25px rgba(0,0,0,0.5); overflow: hidden;
+        }
+        .lane {
+            height: 85px; border-bottom: 2px dashed rgba(255, 255, 255, 0.4);
+            position: relative; display: flex; align-items: center;
+        }
+        .lane:last-child { border-bottom: none; }
+        .lane-number {
+            color: white; font-weight: bold; font-size: 22px;
+            width: 50px; text-align: center; z-index: 2; text-shadow: 2px 2px 4px #000;
+        }
+        .horse {
+            font-size: 42px; position: absolute; left: 50px;
+            transform: scaleX(-1); transition: left 0.03s linear;
+            user-select: none; z-index: 3;
+        }
+        .horse.galloping { animation: gallop 0.1s infinite alternate ease-in-out; }
+        @keyframes gallop {
+            0% { transform: scaleX(-1) translateY(-6px) rotate(-5deg); }
+            100% { transform: scaleX(-1) translateY(6px) rotate(7deg); }
+        }
+        .finish-line {
+            position: absolute; right: 65px; top: 0; bottom: 0; width: 16px;
+            background: repeating-linear-gradient(45deg,#fff,#fff 8px,#000 8px,#000 16px);
+            z-index: 1; box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+        }
+        .result {
+            margin-top: 25px; font-size: 24px; font-weight: bold;
+            color: #222; min-height: 40px; text-align: center; line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🐎 ⚡ 와이드 대역전 경마: 전설의 기록 ⚡ 🐎</h1>
+   
+    <div class="record-board" id="recordBoard">🏆 현재 최고 기록: 없음</div>
+   
+    <div class="money-status">💰 내 자산: <span id="myMoney">10,000</span> 골드</div>
+
+    <div class="save-container">
+        <label for="userName"><strong>현재 자산 기록하기:</strong></label>
+        <input type="text" id="userName" placeholder="플레이어 이름" maxlength="10">
+        <button class="save-btn" id="saveBtn" onclick="saveRecord()">명예의 전당 등록 💾</button>
+    </div>
+
+    <div class="controls">
+        <label for="horseSelect"><strong>예측마:</strong> </label>
+        <select id="horseSelect">
+            <option value="1">1번 번개호 [배당률: 계산중]</option>
+            <option value="2">2번 적토마 [배당률: 계산중]</option>
+            <option value="3">3번 질풍이 [배당률: 계산중]</option>
+            <option value="4">4번 다크호스 [배당률: 계산중]</option>
+        </select>
+
+        <label for="betAmount"><strong>배팅액:</strong> </label>
+        <input type="number" id="betAmount" value="1000" min="100" step="100">
+
+        <button id="startBtn" onclick="startRace()">경기 시작! 🏁</button>
+        <button id="allInBtn" class="allin-btn" onclick="allInRace()">💥 올 인! 💥</button>
+        <button id="restartBtn" class="restart-btn" onclick="restartGame()" style="display: none;">🔄 초기화 및 재시작 🔄</button>
+    </div>
+
+    <div class="track-container">
+        <div class="finish-line"></div>
+        <div class="lane"><div class="lane-number">1</div><div class="horse" id="horse1">🐎</div></div>
+        <div class="lane"><div class="lane-number">2</div><div class="horse" id="horse2">🐎</div></div>
+        <div class="lane"><div class="lane-number">3</div><div class="horse" id="horse3">🐎</div></div>
+        <div class="lane"><div class="lane-number">4</div><div class="horse" id="horse4">🐎</div></div>
+    </div>
+
+    <div class="result" id="resultDisplay">준비가 되면 경기를 시작하세요!</div>
+
+    <script>
+        let raceInterval;
+        let isRacing = false;
+        let userMoney = 10000;
+        let bestRecord = 0;
+        let bestPlayer = "";
+        let currentOdds = {};
+        const horseNames = { 1: "1번 번개호", 2: "2번 적토마", 3: "3번 질풍이", 4: "4번 다크호스" };
+
+        updateOdds();
+
+        function updateOdds() {
+            const selectElement = document.getElementById('horseSelect');
+            for (let i = 1; i <= 4; i++) {
+                currentOdds[i] = parseFloat((Math.random() * 5.0 + 2.0).toFixed(1));
+                selectElement.options[i-1].text = `${horseNames[i]} [배당률: x${currentOdds[i]}]`;
+            }
+        }
+
+        function updateMoneyDisplay() {
+            document.getElementById('myMoney').innerText = userMoney.toLocaleString();
+            if (userMoney <= 0) {
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('allInBtn').style.display = 'none';
+                document.getElementById('restartBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('restartBtn').style.display = 'none';
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('allInBtn').style.display = 'inline-block';
+            }
+        }
+
+        function saveRecord() {
+            const name = document.getElementById('userName').value.trim();
+            if (!name) { alert("기록할 이름을 입력해주세요!"); return; }
+
+            if (userMoney >= bestRecord) {
+                bestRecord = userMoney;
+                bestPlayer = name;
+                document.getElementById('recordBoard').innerHTML = `🏆 현재 최고 기록: <b>${bestPlayer}</b> (${bestRecord.toLocaleString()} 골드)`;
+                alert(`[명예의 전당] ${name}님의 현재 자산 ${userMoney.toLocaleString()} 골드가 저장되었습니다!\n게임이 초기화됩니다.`);
+               
+                // 🔄 저장 성공 시 게임 초기화 실행
+                restartGame();
+                document.getElementById('userName').value = ""; // 입력창 비우기
+            } else {
+                alert(`현재 자산(${userMoney.toLocaleString()} 골드)이 기존 최고 기록(${bestRecord.toLocaleString()} 골드)보다 낮아 등록되지 않았습니다.`);
+            }
+        }
+
+        function restartGame() {
+            userMoney = 10000;
+            updateMoneyDisplay();
+            updateOdds();
+            document.getElementById('resultDisplay').innerHTML = "새로운 게임이 시작되었습니다!";
+            for (let i = 1; i <= 4; i++) document.getElementById(`horse${i}`).style.left = '50px';
+        }
+
+        function allInRace() {
+            if (isRacing || userMoney <= 0) return;
+            document.getElementById('betAmount').value = userMoney;
+            startRace();
+        }
+
+        function startRace() {
+            if (isRacing) return;
+            const betInput = document.getElementById('betAmount');
+            const betAmount = parseInt(betInput.value);
+
+            if (isNaN(betAmount) || betAmount <= 0 || betAmount > userMoney) {
+                alert("배팅 금액이 올바르지 않습니다!"); return;
+            }
+           
+            isRacing = true;
+            userMoney -= betAmount;
+            updateMoneyDisplay();
+
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('allInBtn').disabled = true;
+            document.getElementById('saveBtn').disabled = true;
+           
+            const horses = [
+                { id: 1, element: document.getElementById('horse1'), pos: 50, baseSpeed: 6, accel: 0, finished: false },
+                { id: 2, element: document.getElementById('horse2'), pos: 50, baseSpeed: 6, accel: 0, finished: false },
+                { id: 3, element: document.getElementById('horse3'), pos: 50, baseSpeed: 6, accel: 0, finished: false },
+                { id: 4, element: document.getElementById('horse4'), pos: 50, baseSpeed: 6, accel: 0, finished: false }
+            ];
+
+            horses.forEach(h => {
+                h.element.style.left = '50px';
+                h.element.classList.add('galloping');
+            });
+
+            const trackWidth = document.querySelector('.track-container').clientWidth;
+            const finishPos = trackWidth - 120;
+            let rankOrder = [];
+
+            raceInterval = setInterval(() => {
+                const maxPos = Math.max(...horses.map(h => h.pos));
+                horses.forEach(h => {
+                    if (h.finished) return;
+                    h.accel += (Math.random() * 3.6 - 1.8);
+                    h.accel = Math.max(-5, Math.min(9, h.accel));
+                    if (maxPos - h.pos > 130 && Math.random() < (0.25 / currentOdds[h.id])) h.accel += Math.random() * 9 + 4;
+                    if (Math.random() < 0.035) h.accel -= Math.random() * 6;
+                   
+                    let speed = h.baseSpeed + h.accel + (Math.random() * 7);
+                    h.pos += Math.max(1, speed);
+                    h.element.style.left = h.pos + 'px';
+
+                    if (h.pos >= finishPos) {
+                        h.finished = true;
+                        h.element.classList.remove('galloping');
+                        rankOrder.push(h.id);
+                    }
+                });
+                if (rankOrder.length === 4) { clearInterval(raceInterval); endRace(rankOrder, betAmount); }
+            }, 30);
+        }
+
+        function endRace(rankOrder, betAmount) {
+            isRacing = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('allInBtn').disabled = false;
+            document.getElementById('saveBtn').disabled = false;
+
+            const selectedHorse = parseInt(document.getElementById('horseSelect').value);
+            const myRank = rankOrder.indexOf(selectedHorse) + 1;
+            let reward = 0;
+            let msg = "";
+
+            if (myRank === 1) {
+                reward = Math.floor(betAmount * currentOdds[selectedHorse]);
+                msg = `<span style='color: #e91e63;'>🥇 1등! 대박! +${reward.toLocaleString()} 골드 획득!</span>`;
+            } else if (myRank === 2) {
+                reward = Math.round(betAmount * 0.6);
+                msg = `<span style='color: #0091ea;'>🥈 2등! 아쉬운 손실... +${reward.toLocaleString()} 골드 (60%)</span>`;
+            } else if (myRank === 3) {
+                reward = Math.round(betAmount * 0.1);
+                msg = `<span style='color: #4caf50;'>🥉 3등! 낙방 위로금. +${reward.toLocaleString()} 골드 (10%)</span>`;
+            } else {
+                msg = `<span style='color: #555;'>💀 4등... 모든 배팅금을 잃었습니다.</span>`;
+            }
+
+            userMoney += reward;
+            updateMoneyDisplay();
+            updateOdds();
+
+            let board = `🏁 <b>결과:</b> ${rankOrder.map((id, i) => `${i+1}위:${horseNames[id]}`).join(' / ')}<br>${msg}`;
+            document.getElementById('resultDisplay').innerHTML = board;
+        }
+    </script>
+</body>
+</html>
